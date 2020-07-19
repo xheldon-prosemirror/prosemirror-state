@@ -47,6 +47,7 @@
 //   with the new state and new transactions—but only the new
 //   transactions, i.e. it won't be passed transactions that it
 //   already saw.
+//   允许这个插件附件另一个 transaction 到将要被应用的 transactions 上去。
 
 function bindProps(obj, self, target) {
   for (let prop in obj) {
