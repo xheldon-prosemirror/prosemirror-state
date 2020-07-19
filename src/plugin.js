@@ -63,7 +63,7 @@ function bindProps(obj, self, target) {
 // ::- Plugins bundle functionality that can be added to an editor.
 // They are part of the [editor state](#state.EditorState) and
 // may influence that state and the view that contains it.
-// Plugins 可以被添加到 editor 中，它们是编辑器 state 的一部分。
+// Plugins 可以被添加到 editor 中，它们是编辑器 state 的一部分，并且能够影响包含它的 state 和 view。
 export class Plugin {
   // :: (PluginSpec)
   // Create a plugin.
