@@ -48,7 +48,7 @@
 //   transactions, i.e. it won't be passed transactions that it
 //   already saw.
 //   允许这个插件附加另一个 transaction 到将要被应用的 transactions 上去。 当另一个 plugin 又附加了一个 transaction 且其在当前 plugin 之后调用，
-//   则其会再调用一次
+//   则其会再调用一次。但是仅含新的 transaction 和新的 state。也即是，它不会再将之前处理过的 transaction 再处理一次.
 
 function bindProps(obj, self, target) {
   for (let prop in obj) {
