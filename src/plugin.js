@@ -124,6 +124,7 @@ function createKey(name) {
 export class PluginKey {
   // :: (?string)
   // Create a plugin key.
+  // 新建一个 plugin key
   constructor(name = "key") { this.key = createKey(name) }
 
   // :: (EditorState) → ?Plugin
