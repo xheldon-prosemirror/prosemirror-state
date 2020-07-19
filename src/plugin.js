@@ -130,6 +130,7 @@ export class PluginKey {
   // :: (EditorState) → ?Plugin
   // Get the active plugin with this key, if any, from an editor
   // state.
+  // 用 key 从 state 获取到 key 对应的 state
   get(state) { return state.config.pluginsByKey[this.key] }
 
   // :: (EditorState) → ?any
