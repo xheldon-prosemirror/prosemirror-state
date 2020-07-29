@@ -61,8 +61,12 @@ class Configuration {
 // updated, but rather a new state value is computed from an old one
 // using the [`apply`](#state.EditorState.apply) method.
 //
+//@cnProseMirror 编辑器状态由此对象表示。一个 state 是一个持久化的数据结构--它本身并不更新，旧的 state 通过 [`apply`](#state.EditorState.apply) 方法产生一个新的 state。
+//
 // A state holds a number of built-in fields, and plugins can
 // [define](#state.PluginSpec.state) additional fields.
+//
+// @cn一个 state 有很多内建的字段，同时可以通过 plugins 来 [定义](#state.PluginSpec.state) 额外的字段。
 export class EditorState {
   constructor(config) {
     this.config = config
@@ -70,28 +74,40 @@ export class EditorState {
 
   // doc:: Node
   // The current document.
+  //
+  // @cn 表示当前文档
 
   // selection:: Selection
   // The selection.
+  //
+  // @cn 表示当前选区。
 
   // storedMarks:: ?[Mark]
   // A set of marks to apply to the next input. Will be null when
   // no explicit marks have been set.
+  //
+  // @cn即将要应用到下一次输入的 marks。如果没有显式的设置 marks，此字段将会是 null。
 
   // :: Schema
   // The schema of the state's document.
+  //
+  // @cnstate所表示的文档的 schema。
   get schema() {
     return this.config.schema
   }
 
   // :: [Plugin]
   // The plugins that are active in this state.
+  //
+  // @cn在当前 state 中激活的 plugins。
   get plugins() {
     return this.config.plugins
   }
 
   // :: (Transaction) → EditorState
   // Apply the given transaction to produce a new state.
+  //
+  // @cn对旧的 state 应用给定的 transaction 以产生一个新的 state。
   apply(tr) {
     return this.applyTransaction(tr).state
   }
