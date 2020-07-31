@@ -5,55 +5,87 @@ const classesById = Object.create(null)
 
 // ::- Superclass for editor selections. Every selection type should
 // extend this. Should not be instantiated directly.
+//
+// @cn 编辑器选区的超类。所有的选区类型都扩展自它。不应该直接实例化。
 export class Selection {
   // :: (ResolvedPos, ResolvedPos, ?[SelectionRange])
   // Initialize a selection with the head and anchor and ranges. If no
   // ranges are given, constructs a single range across `$anchor` and
   // `$head`.
+  //
+  // @cn 用给定的 head 和 anchor 和 ranges 初始化一个选区。如果没有 ranges 给定，则构造一个包含 `$anchor` 和 `$head` 位置的 range。
   constructor($anchor, $head, ranges) {
     // :: [SelectionRange]
     // The ranges covered by the selection.
+    //
+    // @cn 选区覆盖到的 ranges。
     this.ranges = ranges || [new SelectionRange($anchor.min($head), $anchor.max($head))]
     // :: ResolvedPos
     // The resolved anchor of the selection (the side that stays in
     // place when the selection is modified).
+    //
+    // @cn 选区 resolved 过的 anchor 位置（即当选区变化的时候，其不动的一侧）。
     this.$anchor = $anchor
     // :: ResolvedPos
     // The resolved head of the selection (the side that moves when
     // the selection is modified).
+    //
+    // @cn选区 resolved 过的 head 位置（即当选区变化时，移动的一侧）。
+    //
+    // @comment 「选区变化时」可能是用户造成的，如用户用鼠标从左到右选择，则选区起始（左侧）是 anchor，即「锚点」；选区右侧（鼠标所在位置）是 head，即动点。
     this.$head = $head
   }
 
   // :: number
   // The selection's anchor, as an unresolved position.
+  //
+  // @cn 选区的 anchor 的位置。
   get anchor() { return this.$anchor.pos }
 
   // :: number
   // The selection's head.
+  //
+  // @cn 选区的 head 的位置。
   get head() { return this.$head.pos }
 
   // :: number
   // The lower bound of the selection's main range.
+  //
+  // @cn 选区位置较小一侧的位置。
+  //
+  // @comment 无论选区是如何选的，一般情况下 from 是选区的左侧起始位置。
   get from() { return this.$from.pos }
 
   // :: number
   // The upper bound of the selection's main range.
+  //
+  // @cn 选区位置较大的一侧。
+  //
+  // @comment 无论选区是如何选的，一般情况下 to 是选区的右侧结束位置。
+  //
+  // @comment 注：均不考虑多个选区的情况，而且似乎 chrome 等浏览器也不支持多选区，只是在一些编辑器中为了编辑方便，有多个选区的存在。
   get to() { return this.$to.pos }
 
   // :: ResolvedPos
   // The resolved lower  bound of the selection's main range.
+  //
+  // @cn resolve 过的选区的位置较小的一侧。
   get $from() {
     return this.ranges[0].$from
   }
 
   // :: ResolvedPos
   // The resolved upper bound of the selection's main range.
+  //
+  // @cn resolve 过的选区的位置较大的一侧。
   get $to() {
     return this.ranges[0].$to
   }
 
   // :: bool
   // Indicates whether the selection contains any content.
+  //
+  // @cn 表示选区是否包含任何内容。
   get empty() {
     let ranges = this.ranges
     for (let i = 0; i < ranges.length; i++)
@@ -63,13 +95,21 @@ export class Selection {
 
   // eq:: (Selection) → bool
   // Test whether the selection is the same as another selection.
+  //
+  // @cn 测试当前选区与另一个选区是否相等。
 
   // map:: (doc: Node, mapping: Mappable) → Selection
   // Map this selection through a [mappable](#transform.Mappable) thing. `doc`
   // should be the new document to which we are mapping.
+  //
+  // @cn 通过一个 [mappable](#transform.Mappable) 对象来 map 当前选区。 `doc` 参数应该是我们正在 mapping 的新的 document。
+  //
+  // @comment 一般通过 `tr.doc` 拿到将要 mapping 到的新的 document。
 
   // :: () → Slice
   // Get the content of this selection as a slice.
+  //
+  // @cn 获取选区内容的 slice 形式。
   content() {
     return this.$from.node(0).slice(this.from, this.to, true)
   }
@@ -77,6 +117,8 @@ export class Selection {
   // :: (Transaction, ?Slice)
   // Replace the selection with a slice or, if no slice is given,
   // delete the selection. Will append to the given transaction.
+  //
+  // @cn 用给定的 slice 替换当前选区，如果没有给 slice，则删除选区。该操作会附加到给定 transaction 最后。
   replace(tr, content = Slice.empty) {
     // Put the new selection at the position after the inserted
     // content. When that ended in an inline node, search backwards,
@@ -99,6 +141,8 @@ export class Selection {
   // :: (Transaction, Node)
   // Replace the selection with the given node, appending the changes
   // to the given transaction.
+  //
+  // @cn 用给定的 node 替换当前选区，该操作会附加到给定的 transaction 最后。
   replaceWith(tr, node) {
     let mapFrom = tr.steps.length, ranges = this.ranges
     for (let i = 0; i < ranges.length; i++) {
@@ -118,6 +162,9 @@ export class Selection {
   // this for a custom selection class, make sure to give the object a
   // `type` property whose value matches the ID under which you
   // [registered](#state.Selection^jsonID) your class.
+  //
+  // @cn 将当前选区转换成 JSON 表示的格式。当在自己实现的 selection 类中实现此方法的时候，需要确保给这个返回的对象一个 `type` 属性，
+  // 属性值是你 [注册](#state.Selection^jsonID) selection 时候的 ID。
 
   // :: (ResolvedPos, number, ?bool) → ?Selection
   // Find a valid cursor or leaf node selection starting at the given
@@ -125,6 +172,13 @@ export class Selection {
   // positive. When `textOnly` is true, only consider cursor
   // selections. Will return null when no valid selection position is
   // found.
+  //
+  // @cn 在给定的位置寻找一个可用的光标或叶节点选区，如果 `dir` 参数是负的则向后寻找，如果是正的则向前寻找。当 `textOnly` 是 true 的时候，则只考虑光标选区。
+  // 如果没有可用的选区位置，则返回 null。
+  //
+  // @comment 向后寻找即一般情况是向左寻找（向位置较小的方向）；向前寻找是向右寻找（向位置较大的方向）。
+  //
+  // @comment 此方法对在粘贴或者一番操作后，不知道应该将光标放到哪个合适的位置时的情况尤为有用，它会自动寻找一个合适的位置，而不用手动 setSelection，对此种情况还有用的一个方法是下面的 near 方法。
   static findFrom($pos, dir, textOnly) {
     let inner = $pos.parent.inlineContent ? new TextSelection($pos)
         : findSelectionIn($pos.node(0), $pos.parent, $pos.pos, $pos.index(), dir, textOnly)
@@ -142,6 +196,8 @@ export class Selection {
   // Find a valid cursor or leaf node selection near the given
   // position. Searches forward first by default, but if `bias` is
   // negative, it will search backwards first.
+  //
+  // @cn 在给定的位置寻找一个可用的光标或者叶节点选区。默认向前搜索，如果 `bias` 是负，则会优先向后搜索。
   static near($pos, bias = 1) {
     return this.findFrom($pos, bias) || this.findFrom($pos, -bias) || new AllSelection($pos.node(0))
   }
@@ -151,6 +207,8 @@ export class Selection {
   // the given document. Will return an
   // [`AllSelection`](#state.AllSelection) if no valid position
   // exists.
+  //
+  // @cn 寻找一个给定文档最开始的光标或叶节点选区。如果没有可用的位置存在，则返回 [`AllSelection`](#state.AllSelection)。
   static atStart(doc) {
     return findSelectionIn(doc, doc, 0, 0, 1) || new AllSelection(doc)
   }
@@ -158,6 +216,8 @@ export class Selection {
   // :: (Node) → Selection
   // Find the cursor or leaf node selection closest to the end of the
   // given document.
+  //
+  // @cn 寻找一个给定文档最末尾的光标或者叶节点选区。
   static atEnd(doc) {
     return findSelectionIn(doc, doc, doc.content.size, doc.childCount, -1) || new AllSelection(doc)
   }
@@ -165,6 +225,8 @@ export class Selection {
   // :: (Node, Object) → Selection
   // Deserialize the JSON representation of a selection. Must be
   // implemented for custom classes (as a static class method).
+  //
+  // @cn 反序列化一个选区的 JSON 表示。必须在自定义的 selection 类中实现该方法（作为一个静态类方法）。
   static fromJSON(doc, json) {
     if (!json || !json.type) throw new RangeError("Invalid input for Selection.fromJSON")
     let cls = classesById[json.type]
