@@ -296,7 +296,7 @@ export class EditorState {
   // @cn 反序列化一个 state 的 JSON 表示。`config` 至少应该有一个 `schema` 字段，并且应该包含用来初始化 state 的 plugin 数组。
   // `pluginField` 参数通过在 JSON 对象中的属性名与 plugin 实例对应的方式来反序列化 plugin 的 state。
   //
-  // @comment json 对象中的属性名与 `pluginFields` 中的属性名如果对应到了 plugin 的 key（string），则会调用对应 plugin 的 state 的 fromJSON 方法，
+  // @comment `pluginFields` 中的属性名如果对应到了某个 plugin 的 key（string），则会调用对应 plugin 的 state 的 fromJSON 方法，
   // 如果没有对应到任一个 plugin 的 key，则会直接调 plugin 的 state 的 init 方法，前者参数是 config、插件对应的 json 和根据 config 生成的编辑器 state；后者参数是 config 和根据 config 生成的编辑器的 state。
   //
   //   config::- configuration options
