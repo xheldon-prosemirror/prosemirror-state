@@ -63,7 +63,7 @@ export class Selection {
   //
   // @comment 无论选区是如何选的，一般情况下 to 是选区的右侧结束位置。
   //
-  // @comment 注：均不考虑多个选区的情况，而且似乎 chrome 等浏览器也不支持多选区，只是在一些编辑器中为了编辑方便，有多个选区的存在。
+  // @comment 均不考虑多个选区的情况，而且似乎 chrome 等浏览器也不支持多选区，只是在一些编辑器中为了编辑方便，有多个选区的存在。
   get to() { return this.$to.pos }
 
   // :: ResolvedPos
@@ -119,6 +119,12 @@ export class Selection {
   // delete the selection. Will append to the given transaction.
   //
   // @cn 用给定的 slice 替换当前选区，如果没有给 slice，则删除选区。该操作会附加到给定 transaction 最后。
+  //
+  // @comment 替换后会将新的选区（光标）放到插入的内容的右侧。如果插入的内容是一个 inline 节点，则向右寻找该节点后面的位置。
+  // 如果不是 inline 节点，则向左寻找。
+  // 
+  // @comment 英文原文档有多处使用了「backward」、「forward」、「back」之类的字眼，但是在不同的上下文中，其含义是不同的，因此此处意译为了「向左」或者「向右」，
+  // 不习惯的可以鼠标悬浮查看原英文文档。
   replace(tr, content = Slice.empty) {
     // Put the new selection at the position after the inserted
     // content. When that ended in an inline node, search backwards,
@@ -173,10 +179,8 @@ export class Selection {
   // selections. Will return null when no valid selection position is
   // found.
   //
-  // @cn 在给定的位置寻找一个可用的光标或叶节点选区，如果 `dir` 参数是负的则向后寻找，如果是正的则向前寻找。当 `textOnly` 是 true 的时候，则只考虑光标选区。
+  // @cn 在给定的位置寻找一个可用的光标或叶节点选区，如果 `dir` 参数是负的则往左寻找，如果是正的则向右寻找。当 `textOnly` 是 true 的时候，则只考虑光标选区。
   // 如果没有可用的选区位置，则返回 null。
-  //
-  // @comment 向后寻找即一般情况是向左寻找（向位置较小的方向）；向前寻找是向右寻找（向位置较大的方向）。
   //
   // @comment 此方法对在粘贴或者一番操作后，不知道应该将光标放到哪个合适的位置时的情况尤为有用，它会自动寻找一个合适的位置，而不用手动 setSelection，对此种情况还有用的一个方法是下面的 near 方法。
   static findFrom($pos, dir, textOnly) {
@@ -197,7 +201,7 @@ export class Selection {
   // position. Searches forward first by default, but if `bias` is
   // negative, it will search backwards first.
   //
-  // @cn 在给定的位置寻找一个可用的光标或者叶节点选区。默认向前搜索，如果 `bias` 是负，则会优先向后搜索。
+  // @cn 在给定的位置寻找一个可用的光标或者叶节点选区。默认向右搜索，如果 `bias` 是负，则会优先向左搜索。
   static near($pos, bias = 1) {
     return this.findFrom($pos, bias) || this.findFrom($pos, -bias) || new AllSelection($pos.node(0))
   }
@@ -239,6 +243,9 @@ export class Selection {
   // classes must register themselves with an ID string, so that they
   // can be disambiguated. Try to pick something that's unlikely to
   // clash with classes from other modules.
+  //
+  // @cn 为了能够从 JSON 中反序列化一个选区，自定义的 selection 类必须用一个字符串 ID 来注册自己，以消除歧义。
+  // 尽量要用一个不会与其他模块的类名冲突的字符串。
   static jsonID(id, selectionClass) {
     if (id in classesById) throw new RangeError("Duplicate use of selection JSON ID " + id)
     classesById[id] = selectionClass
@@ -254,6 +261,10 @@ export class Selection {
   // track and restore old selections.) The default implementation of
   // this method just converts the selection to a text selection and
   // returns the bookmark for that.
+  //
+  // @cn 获取一个选区的 [bookmark](#state.SelectionBookmark)，它是一个无需访问当前 document 即可被 mapped
+  // 然后再在 mapped 后通过给定一个 document 再解析成一个真实选区的值。（这个方法最可能被用在 history 中，以进行
+  // 选区追踪和恢复旧选区）该方法的默认实现仅仅是转换当前选区为一个文本选区，然后返回文本选区的 bookmark。
   getBookmark() {
     return TextSelection.between(this.$anchor, this.$head).getBookmark()
   }
@@ -263,6 +274,8 @@ export class Selection {
 // Controls whether, when a selection of this type is active in the
 // browser, the selected range should be visible to the user. Defaults
 // to `true`.
+//
+// @cn 控制该选区类型在浏览器中被激活的时候是否对用户可见。默认是 `true`。
 Selection.prototype.visible = true
 
 // SelectionBookmark:: interface
@@ -270,24 +283,37 @@ Selection.prototype.visible = true
 // You can define a custom bookmark type for a custom selection class
 // to make the history handle it well.
 //
+// @cn 一个轻量的，文档无关的选区形式。你可以对一个自定义选区类来自定义一个 bookmark 类型，使 history 正确处理它（自定义选区的 bookmark）。
+//
 //   map:: (mapping: Mapping) → SelectionBookmark
 //   Map the bookmark through a set of changes.
+//   
+//   @cn 在一系列的文档修改后 map 该 bookmark 到一个新的 bookmark。
 //
 //   resolve:: (doc: Node) → Selection
 //   Resolve the bookmark to a real selection again. This may need to
 //   do some error checking and may fall back to a default (usually
 //   [`TextSelection.between`](#state.TextSelection^between)) if
 //   mapping made the bookmark invalid.
+//
+//   @cn 将该 bookmark 再解析成一个真实选区。可能需要做一些错误检查，并且如果 mapping 后该 bookmark 变得不可用的话，则会回滚到
+//   默认行为（通常是 [`TextSelection.between`](#state.TextSelection^between)）。
 
 // ::- Represents a selected range in a document.
+//
+// @cn 表示文档中的一个选区范围。
 export class SelectionRange {
   // :: (ResolvedPos, ResolvedPos)
   constructor($from, $to) {
     // :: ResolvedPos
     // The lower bound of the range.
+    //
+    // @cn 选区范围位置较小的一侧。
     this.$from = $from
     // :: ResolvedPos
     // The upper bound of the range.
+    //
+    // @cn 选区范围位置较大的一侧。
     this.$to = $to
   }
 }
@@ -296,9 +322,16 @@ export class SelectionRange {
 // a head (the moving side) and anchor (immobile side), both of which
 // point into textblock nodes. It can be empty (a regular cursor
 // position).
+//
+// @cn 一个文本选区代表一个典型的编辑器选区，其有一个 head（移动的一侧）和一个 anchor（不动的一侧），二者都
+// 指向一个文本块节点。它可以是空的（此时表示一个正常的光标位置）。
+//
+// @comment 文本块节点，即文本节点的直接父节点。如定义了 doc > p > text，则文本块节点即 p 节点。
 export class TextSelection extends Selection {
   // :: (ResolvedPos, ?ResolvedPos)
   // Construct a text selection between the given points.
+  //
+  // @cn 构造一个包含给定两点的文本选区。
   constructor($anchor, $head = $anchor) {
     super($anchor, $head)
   }
@@ -306,6 +339,8 @@ export class TextSelection extends Selection {
   // :: ?ResolvedPos
   // Returns a resolved position if this is a cursor selection (an
   // empty text selection), and null otherwise.
+  //
+  // @cn 如果当前选区是一个光标选区（一个空的文本选区），则返回其 resolved 过的位置，否则返回 null。
   get $cursor() { return this.$anchor.pos == this.$head.pos ? this.$head : null }
 
   map(doc, mapping) {
@@ -343,6 +378,8 @@ export class TextSelection extends Selection {
 
   // :: (Node, number, ?number) → TextSelection
   // Create a text selection from non-resolved positions.
+  //
+  // @cn 用一个非 resolved 过的位置作为参数来创建一个文本选区。
   static create(doc, anchor, head = anchor) {
     let $anchor = doc.resolve(anchor)
     return new this($anchor, head == anchor ? $anchor : doc.resolve(head))
@@ -355,6 +392,10 @@ export class TextSelection extends Selection {
   // or backwards (negative number) first. Will fall back to calling
   // [`Selection.near`](#state.Selection^near) when the document
   // doesn't contain a valid text position.
+  //
+  // @cn 返回一个跨越给定 anchor 和 head 位置的选区，如果它们不是一个文本位置，则调用 findFrom 就近寻找一个可用的文本选区。
+  // `bias` 决定就近向哪个方向寻找，默认是向左，值为负时是向右。如果文档不包含一个可用的文本位置，
+  // 则调用 [`Selection.near`](#state.Selection^near) 方法。
   static between($anchor, $head, bias) {
     let dPos = $anchor.pos - $head.pos
     if (!bias || dPos) bias = dPos >= 0 ? 1 : -1
@@ -395,15 +436,27 @@ class TextBookmark {
 // the target of a node selection. In such a selection, `from` and
 // `to` point directly before and after the selected node, `anchor`
 // equals `from`, and `head` equals `to`..
+//
+// @cn 一个 node （节点）选区是一个指向单独节点的选区。所有的配置为 [selectable](#model.NodeSpec.selectable)
+// 的 node 节点都可以是一个 node 选区的目标。在这个类型的选区中，`from` 和 `to` 直接指向选择节点的前面和后面，
+// `anchor` 等于 `from`，`head` 等于 `to`。
+//
+// @comment node 选区就是当选中一个节点的时候的选区类型。
 export class NodeSelection extends Selection {
   // :: (ResolvedPos)
   // Create a node selection. Does not verify the validity of its
   // argument.
+  //
+  // @cn 新建一个 node 选区。不会验证参数的可用性。
+  //
+  // @comment 因为不会验证参数的可用性，所以需要保证参数 $pos 是一个 resolved 过的可用 pos。
   constructor($pos) {
     let node = $pos.nodeAfter
     let $end = $pos.node(0).resolve($pos.pos + node.nodeSize)
     super($pos, $end)
     // :: Node The selected node.
+    //
+    // @cn 当前选择的 node。
     this.node = node
   }
 
@@ -436,6 +489,8 @@ export class NodeSelection extends Selection {
 
   // :: (Node, number) → NodeSelection
   // Create a node selection from non-resolved positions.
+  //
+  // @cn 以一个未 resolved 过的位置来新建一个 node 选区。
   static create(doc, from) {
     return new this(doc.resolve(from))
   }
@@ -443,6 +498,8 @@ export class NodeSelection extends Selection {
   // :: (Node) → bool
   // Determines whether the given node may be selected as a node
   // selection.
+  //
+  // @cn 判断给的节点是否可以被选中作为一个 node 选区。
   static isSelectable(node) {
     return !node.isText && node.type.spec.selectable !== false
   }
@@ -471,6 +528,8 @@ class NodeBookmark {
 // (which can not necessarily be expressed with a text selection, when
 // there are for example leaf block nodes at the start or end of the
 // document).
+//
+// @cn 代表了选中整个文档的选区类型（）。
 export class AllSelection extends Selection {
   // :: (Node)
   // Create an all-selection over the given document.
