@@ -529,10 +529,12 @@ class NodeBookmark {
 // there are for example leaf block nodes at the start or end of the
 // document).
 //
-// @cn 代表了选中整个文档的选区类型（）。
+// @cn 代表了选中整个文档的选区类型（此时可能用文本选区类型来表示不是必要的，比如当一个文档开头或者结尾有一个叶节点的时候）。
 export class AllSelection extends Selection {
   // :: (Node)
   // Create an all-selection over the given document.
+  //
+  // @cn 创建一个覆盖给定文档的 AllSelection 选区类型。
   constructor(doc) {
     super(doc.resolve(0), doc.resolve(doc.content.size))
   }
