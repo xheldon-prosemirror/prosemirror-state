@@ -194,7 +194,7 @@ export class EditorState {
   //      @cn state 配置选项。必须包含 `schema` 和 `doc` （或者两者都有）。
   //
   //      schema:: ?Schema
-  //      The schema to use.
+  //      The schema to use (only relevant if no `doc` is specified).
   //
   //      @cn 当前编辑器所使用的 schema。
   //
@@ -218,7 +218,7 @@ export class EditorState {
   //
   //      @cn state 中激活的 plugins。
   static create(config) {
-    let $config = new Configuration(config.schema || config.doc.type.schema, config.plugins)
+    let $config = new Configuration(config.doc ? config.doc.type.schema : config.schema, config.plugins)
     let instance = new EditorState($config)
     for (let i = 0; i < $config.fields.length; i++)
       instance[$config.fields[i].name] = $config.fields[i].init(config, instance)
@@ -240,21 +240,16 @@ export class EditorState {
   //
   //   config::- configuration options
   //
-  //     @cn 配置选项
+  //     @cn 配置选项，之前还有一个 schema 属性可以配置，后来没；之前返回的 Plugin 是可选的，即可能什么也不返回，后来去掉了可选符号 `?` 不知道什么原因，有兴趣的可以看下变更历史。
   //
-  //     schema:: ?Schema
-  //     New schema to use.
-  //
-  //     @cn 新 state 所用到的新的 schema
-  //
-  //     plugins:: ?[Plugin]
+  //     plugins:: [Plugin]
   //     New set of active plugins.
   //
   //     @cn 新的激活的插件集合。
   //
   //     @comment plugins 上的 state 构成新的编辑器的 state。
   reconfigure(config) {
-    let $config = new Configuration(config.schema || this.schema, config.plugins)
+    let $config = new Configuration(this.schema, config.plugins)
     let fields = $config.fields, instance = new EditorState($config)
     for (let i = 0; i < fields.length; i++) {
       let name = fields[i].name
