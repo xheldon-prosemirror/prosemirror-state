@@ -6,16 +6,25 @@ const classesById = Object.create(null)
 
 /// Superclass for editor selections. Every selection type should
 /// extend this. Should not be instantiated directly.
+/// @cn 编辑器选区的超类。所有的选区类型都扩展自它。不应该直接实例化。
 export abstract class Selection {
   /// Initialize a selection with the head and anchor and ranges. If no
   /// ranges are given, constructs a single range across `$anchor` and
   /// `$head`.
+  ///
+  /// @cn 用给定的 head 和 anchor 和 ranges 初始化一个选区。如果没有 ranges 给定，则构造一个包含 `$anchor` 和 `$head` 位置的 range。
   constructor(
     /// The resolved anchor of the selection (the side that stays in
     /// place when the selection is modified).
+    ///
+    /// @cn 选区 resolved 过的 anchor 位置（即当选区变化的时候，其不动的一侧）。    
     readonly $anchor: ResolvedPos,
     /// The resolved head of the selection (the side that moves when
     /// the selection is modified).
+    ///
+    /// @cn选区 resolved 过的 head 位置（即当选区变化时，移动的一侧）。
+    ///
+    /// @comment 「选区变化时」可能是用户造成的，如用户用鼠标从左到右选择，则选区起始（左侧）是 anchor，即「锚点」；选区右侧（鼠标所在位置）是 head，即动点。
     readonly $head: ResolvedPos,
     ranges?: readonly SelectionRange[]
   ) {
@@ -23,15 +32,24 @@ export abstract class Selection {
   }
 
   /// The ranges covered by the selection.
+  /// @cn 选区覆盖到的 ranges。
   ranges: readonly SelectionRange[]
 
   /// The selection's anchor, as an unresolved position.
+  ///
+  /// @cn 选区的 anchor 的位置。
   get anchor() { return this.$anchor.pos }
 
   /// The selection's head.
+  ///
+  /// @cn 选区的 head 的位置。
   get head() { return this.$head.pos }
 
   /// The lower bound of the selection's main range.
+  ///
+  /// @cn 选区位置较小一侧的位置。
+  ///
+  /// @comment 无论选区是如何选的，一般情况下 from 是选区的左侧起始位置。
   get from() { return this.$from.pos }
 
   /// The upper bound of the selection's main range.

@@ -62,21 +62,35 @@ class Configuration {
 
 /// The type of object passed to
 /// [`EditorState.create`](#state.EditorState^create).
+///
+/// @cn [`EditorState.create`](#state.EditorState^create).方法的参数接口
 export interface EditorStateConfig {
   /// The schema to use (only relevant if no `doc` is specified).
+  ///
+  /// @cn 定义好的 schema（仅在未指定doc时相关）。
+  ///
+  /// @comment 如果传入了 doc, 就直接从 doc 对象上获取 schema 了
   schema?: Schema
 
   /// The starting document. Either this or `schema` _must_ be
   /// provided.
+  ///
+  /// @cn 初始的 doc。doc 或 schema _必须_提供一个
   doc?: Node
 
   /// A valid selection in the document.
+  ///
+  /// @cn 文档中可用的选区。
   selection?: Selection
 
   /// The initial set of [stored marks](#state.EditorState.storedMarks).
+  ///
+  /// @cn [stored marks](#state.EditorState.storedMarks) 的初始集合。
   storedMarks?: readonly Mark[] | null
 
   /// The plugins that should be active in this state.
+  ///
+  /// @cn state 中激活的 plugins。
   plugins?: readonly Plugin[]
 }
 
@@ -85,8 +99,12 @@ export interface EditorStateConfig {
 /// updated, but rather a new state value is computed from an old one
 /// using the [`apply`](#state.EditorState.apply) method.
 ///
+///@cn ProseMirror 编辑器状态由此对象表示。一个 state 是一个持久化的数据结构--它本身并不更新，旧的 state 通过 [`apply`](#state.EditorState.apply) 方法产生一个新的 state。
+///
 /// A state holds a number of built-in fields, and plugins can
 /// [define](#state.PluginSpec.state) additional fields.
+///
+/// @cn 一个 state 有很多内建的字段，同时可以通过 plugins 来 [定义](#state.PluginSpec.state) 额外的字段。
 export class EditorState {
   /// @internal
   constructor(
@@ -95,26 +113,38 @@ export class EditorState {
   ) {}
 
   /// The current document.
+  ///
+  /// @cn 当前文档
   doc!: Node
 
   /// The selection.
+  ///
+  /// @cn 当前选区。
   selection!: Selection
 
   /// A set of marks to apply to the next input. Will be null when
   /// no explicit marks have been set.
+  ///
+  /// @cn 即将要应用到下一次输入的 marks。如果没有显式的设置 marks，此字段将会是 null。
   storedMarks!: readonly Mark[] | null
 
   /// The schema of the state's document.
+  ///
+  /// @cn state 所表示的文档的 schema。
   get schema(): Schema {
     return this.config.schema
   }
 
   /// The plugins that are active in this state.
+  ///
+  /// @cn 在当前 state 中激活的 plugins。
   get plugins(): readonly Plugin[] {
     return this.config.plugins
   }
 
   /// Apply the given transaction to produce a new state.
+  ///
+  /// @cn 对旧的 state 应用给定的 transaction 以产生一个新的 state。
   apply(tr: Transaction): EditorState {
     return this.applyTransaction(tr).state
   }
@@ -134,6 +164,9 @@ export class EditorState {
   /// be influenced by the [transaction
   /// hooks](#state.PluginSpec.filterTransaction) of
   /// plugins) along with the new state.
+  ///
+  /// @cn [`apply`](#state.EditorState.apply) 的复杂版。该接口返回将应用到旧 state 以产生新 state 的每一个 transactions
+  /// （其返回解构可能被插件的 [transaction hooks](#state.PluginSpec.filterTransaction) 影响。）
   applyTransaction(rootTr: Transaction): {state: EditorState, transactions: readonly Transaction[]} {
     if (!this.filterTransaction(rootTr)) return {state: this, transactions: []}
 
@@ -179,9 +212,15 @@ export class EditorState {
   }
 
   /// Start a [transaction](#state.Transaction) from this state.
+  ///
+  /// @cn 从当前 state 生成一个新的 [transaction](#state.Transaction) 以对当前 state 进行修改。
+  ///
+  /// @comment 该 transaction 是一个 getter 函数，每次调用都会 new 一个新的 transaction。
   get tr(): Transaction { return new Transaction(this) }
 
   /// Create a new state.
+  ///
+  /// @cn 创建一个新的 state。
   static create(config: EditorStateConfig) {
     let $config = new Configuration(config.doc ? config.doc.type.schema : config.schema!, config.plugins)
     let instance = new EditorState($config)
@@ -196,8 +235,17 @@ export class EditorState {
   /// dropped, and those that are new are initialized using their
   /// [`init`](#state.StateField.init) method, passing in the new
   /// configuration object..
+  ///
+  /// @cn 基于当前的 state 新建一个新的 state，只是新的 state 的中的字段会由传入的 plugins 重新配置。新旧两组 plugins 中的 state 字段中都存在的字段保持不变。
+  /// （相比于旧的 plugins 中）不再存在的字段将会被丢弃，新增的字段将会使用 plugin 的 state 对象的 [`init`](#state.StateField.init) 方法进行初始化后作为新的 state 字段。
+  ///
+  /// @comment plugin 配置对象有一个 state 字段，其有两个方法，一个是 init 用来初始化 state；一个是 apply，用来决定如何更新 state。此 create 方法对于新增的 plugin 会调用其 state 的 init 方法进行初始化，以生成编辑器的 state。
   reconfigure(config: {
     /// New set of active plugins.
+    ///
+    ///@cn 新的激活的插件集合。
+    ///
+    ///@comment plugins 上的 state 构成新的编辑器的 state。
     plugins?: readonly Plugin[]    
   }) {
     let $config = new Configuration(this.schema, config.plugins)
@@ -214,6 +262,11 @@ export class EditorState {
   /// resulting JSON object to plugin objects. The argument may also be
   /// a string or number, in which case it is ignored, to support the
   /// way `JSON.stringify` calls `toString` methods.
+  ///
+  /// @cn 将 state 对象序列化成 JSON 对象。如果你想序列化 plugin 的 state，则需要传递一个有着属性名-插件的映射关系的对象，该对象的属性名就会出现在返回值结果对象中。
+  /// 参数也可以是字符串或者数字，但这种情况下参数会被忽略，以支持以 `JSON.stringify` 的方式调用 `toString` 方法。
+  ///
+  /// @comment 如果想序列化 plugin 的 state，需要 plugin 的 state 对象有提供 toJSON 方法，该方法的参数是 plugin 的 key。`doc` 和 `selection` 是保留字段，不能作为参数对象的属性名。
   toJSON(pluginFields?: {[propName: string]: Plugin}): any {
     let result: any = {doc: this.doc.toJSON(), selection: this.selection.toJSON()}
     if (this.storedMarks) result.storedMarks = this.storedMarks.map(m => m.toJSON())
@@ -231,10 +284,21 @@ export class EditorState {
   /// plugins to initialize the state with. `pluginFields` can be used
   /// to deserialize the state of plugins, by associating plugin
   /// instances with the property names they use in the JSON object.
+  ///
+  /// @cn 反序列化一个 state 的 JSON 表示。`config` 至少应该有一个 `schema` 字段，并且应该包含用来初始化 state 的 plugin 数组。
+  /// `pluginField` 参数通过在 JSON 对象中的属性名与 plugin 实例对应的方式来反序列化 plugin 的 state。
+  ///
+  /// @comment `pluginFields` 中的属性名如果对应到了某个 plugin 的 key（string），则会调用对应 plugin 的 state 的 fromJSON 方法，
+  // 如果没有对应到任一个 plugin 的 key，则会直接调 plugin 的 state 的 init 方法，前者参数是 config、插件对应的 json 和根据 config 生成的编辑器 state；后者参数是 config 和根据 config 生成的编辑器的 state。
+  ///
   static fromJSON(config: {
     /// The schema to use.
+    ///
+    /// @cn 反序列化用到的 schema。
     schema: Schema
     /// The set of active plugins.
+    ///
+    /// @cn 激活插件的集合。
     plugins?: readonly Plugin[]
   }, json: any, pluginFields?: {[propName: string]: Plugin}) {
     if (!json) throw new RangeError("Invalid input for EditorState.fromJSON")
