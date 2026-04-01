@@ -1,3 +1,5 @@
+**This repository has moved to https://code.haverbeke.berlin/prosemirror/prosemirror-state**
+
 # prosemirror-state
 
 [ [**WEBSITE**](https://prosemirror.net) | [**ISSUES**](https://code.haverbeke.berlin/prosemirror/prosemirror/issues) | [**FORUM**](https://discuss.prosemirror.net) | [**CHANGELOG**](https://code.haverbeke.berlin/prosemirror/prosemirror-state/src/branch/main/CHANGELOG.md) ]
